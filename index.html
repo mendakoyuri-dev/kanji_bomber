@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>漢字ボンバー！💣</title>
+  <!-- アイコン・PWA -->
+  <link rel="icon" href="aicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="aicon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="漢字ボンバー">
+  <meta name="theme-color" content="#1a1a2e">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Arial Unicode MS', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .card {
+      background: #fff; border-radius: 24px; padding: 28px 22px;
+      width: 100%; max-width: 460px;
+      box-shadow: 0 25px 70px rgba(0,0,0,0.45);
+    }
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── START ── */
+    .title {
+      font-size: 2.1rem; font-weight: 900; text-align: center;
+      color: #1a1a2e; letter-spacing: -1px; margin-bottom: 4px;
+    }
+    .subtitle {
+      text-align: center; color: #7f8c8d; font-size: 0.92rem;
+      line-height: 1.5; margin-bottom: 18px;
+    }
+    .rules {
+      background: #f8f9fa; border-radius: 14px;
+      padding: 12px 16px; margin-bottom: 18px;
+    }
+    .rule-item { display: flex; gap: 8px; font-size: 0.88rem; color: #555; line-height: 1.7; }
+    .section-label { font-size: 0.88rem; color: #7f8c8d; font-weight: 600; margin-bottom: 10px; }
+    .radical-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 8px; margin-bottom: 12px;
+    }
+    .radical-btn {
+      background: #fff; border: 2px solid #e0e6ed; border-radius: 12px;
+      padding: 10px 4px; cursor: pointer; transition: all 0.16s; font-family: inherit;
+    }
+    .radical-btn:hover {
+      border-color: #3498db; background: #ebf5fb;
+      transform: translateY(-2px); box-shadow: 0 4px 12px rgba(52,152,219,0.2);
+    }
+    .r-char { font-size: 1.5rem; display: block; line-height: 1.3; }
+    .r-name { font-size: 0.58rem; color: #95a5a6; display: block; }
+    .random-btn {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+      border: none; border-radius: 14px; font-size: 0.95rem;
+      font-family: inherit; font-weight: bold; color: white;
+      cursor: pointer; transition: all 0.16s;
+      box-shadow: 0 4px 16px rgba(253,160,133,0.35);
+    }
+    .random-btn:hover {
+      transform: translateY(-2px); box-shadow: 0 6px 22px rgba(253,160,133,0.5);
+    }
+
+    /* ── GAME ── */
+    .game-header {
+      display: flex; justify-content: space-between;
+      align-items: stretch; gap: 8px; margin-bottom: 14px;
+    }
+    .timer-box {
+      background: #fdf2f2; border-radius: 14px;
+      padding: 10px 14px; text-align: center; flex: 0 0 auto; min-width: 86px;
+    }
+    .timer-label { font-size: 0.65rem; color: #e74c3c; font-weight: 700; letter-spacing: 0.5px; }
+    .timer-value {
+      font-size: 2.5rem; font-weight: 900; color: #e74c3c;
+      line-height: 1; font-variant-numeric: tabular-nums;
+    }
+    @keyframes timer-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+    .timer-value.urgent { animation: timer-pulse 0.45s infinite; color: #c0392b; }
+    .theme-box {
+      background: #f8f9fa; border-radius: 14px; padding: 10px; text-align: center;
+      flex: 1; display: flex; flex-direction: column; justify-content: center;
+    }
+    .theme-label { font-size: 0.65rem; color: #95a5a6; margin-bottom: 2px; }
+    .theme-char { font-size: 2.6rem; font-weight: 900; color: #1a1a2e; line-height: 1.1; }
+    .theme-name { font-size: 0.7rem; color: #7f8c8d; }
+    .score-box {
+      background: #e8f8f5; border-radius: 14px;
+      padding: 10px 14px; text-align: center; flex: 0 0 auto; min-width: 86px;
+    }
+    .score-label { font-size: 0.65rem; color: #27ae60; font-weight: 700; letter-spacing: 0.5px; }
+    .score-value { font-size: 2.5rem; font-weight: 900; color: #27ae60; line-height: 1; }
+    .divider { height: 1px; background: #eee; margin: 12px 0; }
+    .input-row { display: flex; gap: 8px; margin-bottom: 6px; }
+    .kanji-input {
+      flex: 1; font-size: 1.6rem; padding: 10px 14px;
+      border: 3px solid #3498db; border-radius: 14px; font-family: inherit;
+      text-align: center; outline: none; background: #fff;
+      transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+    }
+    .kanji-input:focus { border-color: #2980b9; box-shadow: 0 0 0 4px rgba(52,152,219,0.15); }
+    .kanji-input.ok { border-color: #27ae60; background: #eafaf1; }
+    .kanji-input.ng { border-color: #e74c3c; background: #fdf2f2; }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)}
+      40%{transform:translateX(7px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)}
+    }
+    .kanji-input.shaking { animation: shake 0.35s; }
+    .submit-btn {
+      padding: 10px 16px; background: #3498db; border: none; border-radius: 14px;
+      color: #fff; font-size: 1rem; font-family: inherit; font-weight: bold;
+      cursor: pointer; transition: background 0.16s; white-space: nowrap;
+    }
+    .submit-btn:hover { background: #2980b9; }
+    .feedback { font-size: 0.88rem; min-height: 20px; margin-bottom: 8px; text-align: center; font-weight: 600; }
+    .feedback.ok { color: #27ae60; }
+    .feedback.ng { color: #e74c3c; }
+    .found-header { font-size: 0.78rem; color: #95a5a6; margin-bottom: 6px; }
+    .found-list {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      min-height: 38px; max-height: 130px; overflow-y: auto;
+      padding: 8px; background: #f8f9fa; border-radius: 12px;
+    }
+    .found-list::-webkit-scrollbar { width: 4px; }
+    .found-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+    .found-tag {
+      background: #3498db; color: #fff; padding: 3px 12px;
+      border-radius: 20px; font-size: 1.05rem; font-weight: bold;
+    }
+    @keyframes pop {
+      0%{transform:scale(0);opacity:0} 65%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1}
+    }
+    .found-tag.popin { animation: pop 0.3s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+
+    /* ── RESULT ── */
+    .result-top { text-align: center; margin-bottom: 14px; }
+    .result-emoji { font-size: 2.8rem; }
+    .result-label { font-size: 1.25rem; font-weight: bold; color: #1a1a2e; margin-top: 2px; }
+    .score-big { font-size: 5rem; font-weight: 900; color: #1a1a2e; line-height: 1; }
+    .score-big-sub { color: #7f8c8d; font-size: 1.05rem; margin-bottom: 14px; }
+    .rank-badge {
+      background: #eaf2f8; border-radius: 14px; padding: 12px 18px; margin-bottom: 14px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .rank-badge-label { font-size: 0.82rem; color: #7f8c8d; }
+    .rank-badge-text { font-size: 1.1rem; font-weight: bold; color: #2980b9; }
+    .result-found-section { margin-bottom: 14px; }
+    .result-found-label { font-size: 0.82rem; color: #555; font-weight: 600; margin-bottom: 8px; }
+    .result-found-grid {
+      display: flex; flex-wrap: wrap; gap: 7px;
+      padding: 10px; background: #f8f9fa; border-radius: 12px; min-height: 42px;
+    }
+    .found-chip {
+      background: #3498db; color: white; border: none; border-radius: 20px;
+      padding: 4px 14px; font-size: 1.05rem; font-weight: bold; cursor: pointer;
+      transition: background 0.16s, transform 0.12s; font-family: inherit;
+    }
+    .found-chip:hover { background: #2980b9; transform: scale(1.1); }
+
+    /* ── MISSED KANJI ── */
+    .result-missed-section { margin-bottom: 14px; }
+    .result-missed-label { font-size: 0.82rem; color: #555; font-weight: 600; margin-bottom: 8px; }
+    .result-missed-grid {
+      display: flex; flex-wrap: wrap; gap: 7px;
+      padding: 10px; background: #fdfaf3; border-radius: 12px;
+      max-height: 160px; overflow-y: auto;
+      border: 1.5px solid #f0e6c8;
+    }
+    .result-missed-grid::-webkit-scrollbar { width: 4px; }
+    .result-missed-grid::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+    .missed-chip {
+      background: #fef9ec; color: #7d6608; border: 1.5px solid #f0d060;
+      border-radius: 20px; padding: 4px 14px; font-size: 1.05rem; font-weight: bold;
+      cursor: pointer; transition: background 0.16s, transform 0.12s; font-family: inherit;
+    }
+    .missed-chip:hover { background: #fdf0c0; transform: scale(1.1); }
+    .missed-count-badge {
+      font-size: 0.75rem; color: #a08040; background: #fef3c7;
+      border-radius: 10px; padding: 1px 7px; margin-left: 6px; font-weight: normal;
+    }
+
+    .hs-box {
+      background: #f8f9fa; border-radius: 14px;
+      padding: 14px 16px; margin-bottom: 14px; text-align: left;
+    }
+    .hs-title { font-size: 0.85rem; font-weight: bold; color: #555; margin-bottom: 10px; }
+    .hs-row {
+      display: flex; align-items: center; padding: 5px 0;
+      font-size: 0.9rem; border-bottom: 1px solid #eee;
+    }
+    .hs-row:last-child { border-bottom: none; }
+    .hs-medal { width: 26px; font-size: 1.05rem; }
+    .hs-score { margin-left: auto; font-weight: bold; color: #2980b9; }
+    .hs-new {
+      background: #ffd700; color: #333; font-size: 0.68rem;
+      font-weight: bold; padding: 1px 6px; border-radius: 8px; margin-left: 6px;
+    }
+    .play-again-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none; border-radius: 14px; font-size: 1.05rem;
+      font-family: inherit; font-weight: bold; color: #fff;
+      cursor: pointer; transition: all 0.16s;
+      box-shadow: 0 4px 16px rgba(102,126,234,0.35);
+    }
+    .play-again-btn:hover {
+      transform: translateY(-2px); box-shadow: 0 6px 22px rgba(102,126,234,0.5);
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; padding: 16px;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal-card {
+      background: #fff; border-radius: 24px; padding: 28px 24px 20px;
+      max-width: 340px; width: 100%; position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+      animation: modal-pop 0.25s cubic-bezier(0.175,0.885,0.32,1.275) both;
+    }
+    @keyframes modal-pop {
+      0%{transform:scale(0.85);opacity:0} 100%{transform:scale(1);opacity:1}
+    }
+    .modal-close {
+      position: absolute; top: 12px; right: 12px;
+      background: #f0f0f0; border: none; border-radius: 50%;
+      width: 28px; height: 28px; cursor: pointer; font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .modal-close:hover { background: #e0e0e0; }
+    .modal-kanji {
+      font-size: 5rem; text-align: center; line-height: 1;
+      margin-bottom: 16px; color: #1a1a2e; font-weight: 900;
+    }
+    .modal-reading-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+    .reading-badge {
+      padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: bold;
+      white-space: nowrap; flex-shrink: 0; margin-top: 2px;
+    }
+    .reading-badge.on { background: #3498db; color: white; }
+    .reading-badge.kun { background: #27ae60; color: white; }
+    .reading-value { font-size: 0.92rem; color: #333; line-height: 1.6; }
+    .modal-meaning {
+      font-size: 0.82rem; color: #555; margin-top: 10px;
+      line-height: 1.6; border-top: 1px solid #eee; padding-top: 10px;
+    }
+    .modal-kp-btn {
+      display: block; margin-top: 14px; padding: 10px 16px;
+      background: #eaf2f8; color: #2980b9; text-decoration: none;
+      border-radius: 12px; font-size: 0.88rem; font-weight: bold;
+      text-align: center; transition: background 0.16s;
+    }
+    .modal-kp-btn:hover { background: #d6e8f7; }
+    .modal-status { text-align: center; padding: 18px 0; font-size: 0.88rem; color: #7f8c8d; }
+    .modal-status.error { color: #e74c3c; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 3px solid #e0e0e0; border-top-color: #3498db;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    .kp-source {
+      text-align: center; font-size: 0.7rem; color: #bbb; margin-top: 8px;
+    }
+
+    /* ════════════════════════════════════════════
+       モバイル対応
+       ════════════════════════════════════════════ */
+
+    /* ダブルタップズーム防止・ネイティブタップ感 */
+    button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    input  { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+    /* カード：コンテンツ多い時もスクロールできるように */
+    .card {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* モーダル：スマホでもスクロール可能に */
+    .modal-card {
+      overflow-y: auto;
+      max-height: 88dvh;
+      max-height: 88vh; /* フォールバック */
+    }
+
+    /* ── スマホ全般 (〜500px) ── */
+    @media (max-width: 500px) {
+      body {
+        align-items: flex-start;   /* キーボード出現時も上から詰める */
+        padding: 10px;
+        min-height: 100dvh;
+        min-height: 100vh;         /* dvh 非対応ブラウザ向けフォールバック */
+      }
+      .card {
+        padding: 18px 14px;
+        border-radius: 18px;
+        max-height: calc(100dvh - 20px);
+        max-height: calc(100vh - 20px);
+      }
+
+      /* スタートページ */
+      .title    { font-size: 1.75rem; }
+      .subtitle { font-size: 0.83rem; margin-bottom: 14px; }
+      .rules    { padding: 10px 12px; margin-bottom: 14px; }
+      .rule-item { font-size: 0.83rem; }
+      .radical-btn { padding: 8px 3px; border-radius: 10px; }
+      .r-char  { font-size: 1.25rem; }
+      .r-name  { font-size: 0.54rem; }
+      .radical-grid { gap: 6px; margin-bottom: 10px; }
+      .random-btn { padding: 12px; font-size: 0.88rem; }
+
+      /* ゲーム画面 */
+      .game-header { gap: 5px; margin-bottom: 10px; }
+      .timer-box, .score-box { min-width: 68px; padding: 8px 8px; }
+      .timer-value, .score-value { font-size: 2rem; }
+      .timer-label, .score-label { font-size: 0.6rem; }
+      .theme-char  { font-size: 2rem; }
+      .theme-name  { font-size: 0.62rem; }
+      .theme-box   { padding: 8px 6px; }
+      .kanji-input { font-size: 1.4rem; padding: 9px 10px; }
+      .submit-btn  { padding: 10px 12px; font-size: 0.88rem; min-width: 58px; border-radius: 12px; }
+      .found-list  { max-height: 88px; padding: 6px; }
+      .found-header { font-size: 0.72rem; }
+      .found-tag   { font-size: 0.95rem; padding: 2px 10px; }
+      .feedback    { font-size: 0.82rem; }
+
+      /* 結果画面 */
+      .score-big   { font-size: 3.8rem; }
+      .result-label { font-size: 1.1rem; }
+      .result-emoji { font-size: 2.4rem; }
+      .rank-badge  { padding: 10px 14px; margin-bottom: 12px; }
+      .result-found-grid  { max-height: 100px; }
+      .result-missed-grid { max-height: 100px; }
+      .found-chip, .missed-chip { font-size: 0.95rem; padding: 3px 11px; }
+      .hs-box      { padding: 12px 12px; }
+      .play-again-btn { padding: 15px; font-size: 1rem; }
+
+      /* モーダル */
+      .modal-card { padding: 22px 18px 16px; border-radius: 20px; }
+      .modal-kanji { font-size: 4rem; }
+    }
+
+    /* ── 極小スマホ (〜360px) ── */
+    @media (max-width: 360px) {
+      .radical-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; }
+      .r-char { font-size: 1.1rem; }
+      .timer-value, .score-value { font-size: 1.75rem; }
+      .theme-char { font-size: 1.75rem; }
+      .timer-box, .score-box { min-width: 60px; }
+      .kanji-input { font-size: 1.25rem; }
+    }
+
+    /* iPhone ノッチ・ダイナミックアイランド・ホームバー対応 */
+    @supports (padding: max(0px)) {
+      body {
+        padding-top:    max(14px, env(safe-area-inset-top));
+        padding-left:   max(10px, env(safe-area-inset-left));
+        padding-right:  max(10px, env(safe-area-inset-right));
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+      }
+    }
+
+    /* キーボード表示中：ヘッダーをギュッとコンパクトに */
+    .kb-open .game-header { gap: 4px; margin-bottom: 6px; }
+    .kb-open .timer-box,
+    .kb-open .score-box   { padding: 5px 8px; min-width: 62px; }
+    .kb-open .timer-value,
+    .kb-open .score-value { font-size: 1.7rem; }
+    .kb-open .timer-label,
+    .kb-open .score-label { font-size: 0.56rem; }
+    .kb-open .theme-box   { padding: 5px 6px; }
+    .kb-open .theme-char  { font-size: 1.7rem; }
+    .kb-open .theme-name  { display: none; }
+    .kb-open .divider     { margin: 6px 0; }
+    .kb-open .feedback    { margin-bottom: 4px; font-size: 0.8rem; min-height: 14px; }
+    .kb-open .found-header { display: none; }
+    .kb-open .found-list  { max-height: 52px; padding: 5px 8px; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <!-- START -->
+  <div id="screen-start" class="screen active">
+    <div class="title">漢字ボンバー！💣</div>
+    <div class="subtitle">制限時間60秒！部首の漢字を限界まで絞り出せ！</div>
+    <div class="rules">
+      <div class="rule-item"><span>📖</span><span>お題となる「部首」を選んでスタートしてね。</span></div>
+      <div class="rule-item"><span>⌨️</span><span>覚えている漢字を入力して Enter キーを押そう！</span></div>
+      <div class="rule-item"><span>⚠️</span><span>同じ漢字は1回しか使えないよ。</span></div>
+    </div>
+    <div class="section-label">挑戦する部首を選んでね：</div>
+    <div class="radical-grid" id="radical-grid"></div>
+    <button class="random-btn" id="btn-random">🎲 迷ったらコレ！ランダムで選ぶ</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="screen-game" class="screen">
+    <div class="game-header">
+      <div class="timer-box">
+        <div class="timer-label">のこり</div>
+        <div class="timer-value" id="timer-val">60</div>
+      </div>
+      <div class="theme-box">
+        <div class="theme-label">今回のお題</div>
+        <div class="theme-char" id="theme-char">ー</div>
+        <div class="theme-name" id="theme-name"></div>
+      </div>
+      <div class="score-box">
+        <div class="score-label">スコア</div>
+        <div class="score-value" id="score-val">0</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="input-row">
+      <input id="kanji-input" class="kanji-input" type="text"
+             placeholder="漢字を入力…"
+             inputmode="text" enterkeyhint="send"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button class="submit-btn" id="btn-submit">送信</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="found-header">見つけた漢字（重複チェックあり）：</div>
+    <div class="found-list" id="found-list"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screen-result" class="screen">
+    <div class="result-top">
+      <div class="result-emoji">💥</div>
+      <div class="result-label">タイムアップ！</div>
+    </div>
+    <div style="text-align:center;">
+      <div class="score-big" id="res-score">0</div>
+      <div class="score-big-sub">個正解</div>
+    </div>
+    <div class="rank-badge">
+      <span class="rank-badge-label">称号：</span>
+      <span class="rank-badge-text" id="res-rank">ー</span>
+    </div>
+    <div class="result-found-section">
+      <div class="result-found-label">✅ あなたが見つけた漢字（タップで詳細）</div>
+      <div class="result-found-grid" id="result-found-grid"></div>
+    </div>
+    <div class="result-missed-section">
+      <div class="result-missed-label" id="result-missed-label">📖 他にもあった漢字<span class="missed-count-badge" id="missed-count-badge"></span>（タップで詳細）</div>
+      <div class="result-missed-grid" id="result-missed-grid"></div>
+    </div>
+    <div class="hs-box">
+      <div class="hs-title">🏆 この部首のハイスコア TOP3</div>
+      <div id="hs-list"></div>
+    </div>
+    <button class="play-again-btn" id="btn-again">もう一度あそぶ</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal-card">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div class="modal-kanji" id="modal-char">海</div>
+    <div id="modal-body"></div>
+    <a id="modal-kp-link" class="modal-kp-btn" target="_blank" rel="noopener" href="#">
+      漢字ペディアで詳しく見る →
+    </a>
+    <div class="kp-source">出典：漢字ペディア</div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+// 漢字データベース（漢字ペディア 部首索引より）
+// ════════════════════════════════════════════════════
+function makeSet(str) {
+  return new Set(str.trim().split(/\s+/));
+}
+
+const RADICALS = [
+  {
+    char: '氵', label: '水', name: 'さんずい',
+    // 漢字ペディア 水部（部首番号85）
+    kanji: makeSet(`水 永 氷 求 汁 汀 氾 汚 汗 江 汞 汕 汝 汐 池 汎 汪 汽 沂 汲 決 沍 沙 沚 沁 汰 沢 沖 沈 沌 沛 泛 汨 没 沐 沃 泳 沿 泓 河 泣 況 沽 泗 治 泅 沮 沼 泄 泉 泝 沱 泰 注 泥 沾 波 泊 泌 泯 沸 法 泡 沫 油 泪 洟 洩 海 活 洶 洫 洪 洽 洸 洒 洲 洵 浄 津 浅 洗 洞 派 洋 洛 洌 浦 浣 涓 浩 浚 消 浹 涉 浸 浙 涎 涕 涅 浜 浮 涌 浴 浬 流 涙 浪 淫 液 淹 涯 渇 涵 渓 涸 淆 混 済 淬 渋 淑 淳 渚 渉 淌 深 清 淒 淅 淙 淡 添 淀 淘 涼 淋 淪 渥 渭 淵 湲 温 渦 渙 渠 減 湖 港 渾 渣 滋 湿 湫 湘 渫 湊 測 湛 湍 渟 渡 湯 湃 渺 湎 満 渝 湧 游 溂 湾 溢 滑 漢 源 溝 溘 滉 溷 滓 溲 準 溽 滄 滞 滝 溺 滔 溏 漠 溥 滂 溟 滅 溶 溜 演 漁 滸 滾 漆 漿 滲 漸 漕 漱 漲 漬 滴 滌 漂 漫 漾 漓 漣 滷 漏 漉 潰 漑 潟 澗 澆 潔 潸 潤 潯 潜 潺 潮 澄 潑 潘 澎 潦 澳 澣 激 澡 濁 澹 澱 濃 濛 澪 濠 濡 濬 濯 濔 濤 濘 瀉 瀋 濺 瀆 瀑 瀁 濫 瀏 濾 瀚 瀟 瀬 瀞 瀦 瀕 瀝 灌 瀰 瀾 瀲 灑 灘`)
+  },
+  {
+    char: '木', label: '木', name: 'きへん',
+    // 漢字ペディア 木部（部首番号75）
+    kanji: makeSet(`木 札 朮 本 末 未 机 朽 朿 朱 朶 朴 朸 杆 杞 杏 杠 材 杓 条 杖 杉 束 杣 村 杜 杢 杙 来 李 枉 果 杭 枝 杵 松 枢 析 杼 東 杷 杯 板 枇 杪 枌 枋 枚 枕 枡 林 枠 栄 架 枷 柯 枴 柿 柑 柬 枳 柩 枸 枯 査 柤 柴 柵 柞 柘 柊 柔 染 柁 柝 柱 柢 栂 栃 柮 柏 柎 柄 枹 某 柾 柚 柳 案 桙 桜 格 核 桛 株 桓 栞 桔 框 栩 桂 桁 校 栲 桄 根 栽 桟 桎 栖 栓 栴 栫 桑 桃 桐 梅 栗 械 桷 梟 梧 梗 梏 梱 梭 梓 梔 梻 梢 梲 梯 梃 桶 梨 梶 桴 梺 梵 椛 梠 梁 椏 椅 椁 棺 棋 椈 極 棘 椚 検 棍 棧 棕 椒 椄 植 森 椙 棲 棗 棚 椎 棣 棟 棹 棠 棒 棉 椋 椀 楹 楷 楽 棄 業 榀 楸 楫 楯 楔 楚 楕 椴 楮 椿 椹 椽 楠 楳 楾 楓 榁 椰 楡 楢 楊 楝 楼 榉 樺 槐 概 構 槁 槓 榾 槎 榊 槊 榛 槙 榱 槍 槌 榻 槃 榧 榑 榜 模 様 榕 榴 榔 横 槨 樫 槻 樛 槿 権 槲 槧 樟 樅 樞 槭 槽 樔 樗 樋 樊 標 樒 樹 樵 橡 樽 橙 橦 橈 樸 檐 檜 橿 檋 檎 檄 檢 檣 檀 檔 檗 檬 檻 櫃 檮 櫂 檸 檳 櫛 櫟 櫓 櫚 麓 欄 櫪 櫨 櫻 欅 櫺 欒 欖`)
+  },
+  {
+    char: '亻', label: '人', name: 'にんべん',
+    // 漢字ペディア 人部（部首番号9）
+    kanji: makeSet(`人 介 仇 今 什 仍 仁 仄 仆 仏 仂 以 仕 仔 仗 仞 仙 仟 他 代 付 令 伊 仮 会 价 企 伎 休 仰 件 伍 伉 仲 伝 任 伐 伏 位 佚 何 伽 佝 估 佐 作 伺 似 住 伸 佗 体 但 佇 低 佃 佞 伯 伴 佑 余 伶 依 価 佳 侃 佶 供 佼 使 侈 侍 侏 侘 佻 佩 佰 侮 併 侑 佯 例 侖 俤 俄 俠 俥 係 俔 侯 俟 俊 信 侵 俎 促 俗 俘 便 俛 保 俣 俑 俚 俐 侶 倚 俺 倨 俱 倔 倪 倹 倦 個 候 倖 倥 倅 借 修 俶 倡 倩 倉 倬 値 倒 俳 倍 俾 俵 俯 倣 俸 倆 倫 倭 偓 偉 偃 偕 偐 偽 偶 偈 健 做 偲 偖 偬 側 停 偵 偸 偏 傀 傚 傘 備 傅 傍 傴 僅 傾 傑 傲 債 催 傷 僉 僧 働 傭 僂 僖 僑 僥 僭 像 僮 僕 僚 億 儀 僵 儁 儂 僻 儚 儕 儒 儘 儔 償 優 儡 儲 儳 儺 儷 儼 儻`)
+  },
+  {
+    char: '口', label: '口', name: 'くちへん',
+    // 漢字ペディア 口部（部首番号30）
+    kanji: makeSet(`口 右 可 叺 叶 叫 句 古 号 史 司 只 叱 召 台 叮 叨 叭 各 吉 吃 吸 吁 向 后 合 吊 吐 吋 同 名 吏 含 听 吟 吼 君 呉 吾 吭 吽 告 吹 吮 呈 吶 吞 吠 否 呎 吻 吩 呆 吝 呂 咏 呵 咎 呟 呼 呷 呰 呪 周 呻 咀 呶 咄 咐 咆 味 命 和 哀 哇 咽 咳 咢 咸 咬 哄 哈 哉 咲 咨 咫 哂 咤 咥 品 員 唄 哥 哦 唏 唔 哽 哮 哭 唆 哨 唇 啄 哳 哲 唐 哺 哩 哢 啞 啀 喝 啣 啓 啐 售 商 唱 啜 唾 啅 啖 唸 問 唯 喑 喙 喀 喚 喊 喜 喟 喫 喬 喰 喧 喉 啻 啾 喞 善 喘 喪 喋 啼 喃 喩 喇 喨 嗚 嘩 嗅 嗟 嗄 嗣 嗜 嗤 嗇 嗔 嘆 嘔 嘉 嗷 嘖 嘗 嗾 嗽 嘛 噎 噁 器 噓 嘴 嘱 嘶 噌 噂 嘲 嘸 噴 噯 噫 噦 噤 嚆 嘯 噬 噪 噸 噺 嚇 嚀 嚊 嚙 嚔 嚠 嚥 嚮 嚬 嚶 嚴 囈 囂 嚼 囁 囃 囀 囊 囑`)
+  },
+  {
+    char: '忄', label: '心', name: 'りっしんべん',
+    // 漢字ペディア 心部（部首番号61）
+    kanji: makeSet(`心 必 応 忌 志 忖 忍 忙 忘 快 忻 忤 忽 忸 忱 忠 忝 念 忿 怡 怨 怏 怪 急 怯 怙 怺 思 怩 性 怎 怱 怠 怛 怒 怕 怖 怫 怦 怜 恚 恩 悔 恢 恪 恟 恊 恐 恭 恵 恒 恰 恍 恨 恣 恃 恤 恂 恕 恁 息 恥 恬 恫 恙 恋 悪 悦 悁 悍 患 悟 悃 悉 悛 悚 悄 悌 悩 悖 悒 悠 悧 悋 惟 悸 惧 惓 悾 惚 惨 惹 惇 情 悴 悽 惜 惣 惆 悵 悼 悲 惘 悶 惑 愛 意 愒 愕 感 愚 愃 愆 慌 惶 慈 愀 愁 惷 惴 惺 想 惻 惰 愍 愎 愉 愈 慇 慍 慨 愾 愨 愧 慊 愿 慎 愬 愴 態 慝 慕 慂 慄 慰 慣 慶 慧 慳 慷 慠 慙 慴 慫 憎 慥 慟 慓 慢 憂 慵 慾 慮 憖 憬 憩 憲 憧 憔 憚 憊 憑 憫 憮 憤 懌 懊 憶 懐 懈 憾 懃 懇 懆 憺 懋 懍 憐 懦 懲 懣 懸 懶 懽 懺 懿 懼 懾`)
+  },
+  {
+    char: '扌', label: '手', name: 'てへん',
+    // 漢字ペディア 手部（部首番号64）
+    kanji: makeSet(`才 手 扎 打 払 扱 扞 扣 扛 扠 扨 托 找 技 抉 抗 抒 抄 承 折 抓 択 投 抖 把 抜 批 扶 扮 抃 抔 扼 抑 押 拐 拡 拑 拠 拒 拘 招 抻 拙 拓 拆 担 抽 抵 拈 拝 拍 拌 披 拊 拇 抱 抹 拗 拉 按 挌 括 拮 挙 挟 拱 挂 挈 拳 拷 拶 指 持 拾 拯 拭 拵 拿 挑 挘 挨 捐 捍 挫 振 捜 挿 捉 捗 挺 捏 捌 挽 捕 掖 掩 掛 掎 掬 掀 掘 掲 捲 控 採 捨 授 捷 掌 掟 推 捶 据 掣 接 措 掃 掫 探 掏 掉 捺 捻 排 描 捧 捫 掠 握 援 掾 揩 換 揀 揮 揆 揣 揉 揃 提 搭 揶 揄 揖 揚 揺 携 搴 搓 搾 搦 摂 搔 搶 損 搗 搨 搏 搬 摸 搤 摑 摎 撃 摧 摯 摺 摏 摶 摘 摩 撮 撒 撕 撰 撤 撞 撓 撚 播 撥 撫 撲 撩 撈 撼 擒 擅 操 撻 擘 擁 擂 擱 擬 擦 擠 擡 擢 擣 擯 擾 擲 擺 攀 擽 攘 攢 攤 攣 攫 攪 攬`)
+  },
+  {
+    char: '言', label: '言', name: 'ごんべん',
+    // 漢字ペディア 言部（部首番号149）
+    kanji: makeSet(`言 計 訂 訃 記 訖 訓 訐 訌 訊 託 討 訛 訝 許 訣 訟 設 訥 訪 訳 詠 訶 詁 詐 詞 詛 証 詔 診 訴 詑 詒 註 詆 評 詈 詼 該 詭 詰 詣 誇 詬 詩 試 詢 詳 誠 詮 詫 誅 誂 誉 誄 話 誨 誡 誑 語 誤 誥 誌 誚 誦 誓 説 誕 読 認 誣 誘 謁 課 誼 諏 諄 諸 諚 請 諍 諾 誰 談 調 諂 誹 諒 論 諳 謂 諧 諤 諫 謔 諠 諺 諢 諮 諡 諜 諦 諷 謀 諭 謡 諱 謹 謙 謇 講 謝 謖 謄 謎 謐 謨 謗 謳 譁 謦 謫 謬 謾 譌 譏 警 譎 識 譖 譚 譜 議 護 譲 譫 譟 譬 譴 讃 讌 讐 讙 讒 讖`)
+  },
+  {
+    char: '火', label: '火', name: 'ひへん・れっか',
+    // 漢字ペディア 火部（部首番号86）
+    kanji: makeSet(`火 灰 灯 灸 災 灼 炎 炙 炒 炊 炉 為 炬 炯 炸 炷 炭 点 炮 烏 烋 烝 烙 烈 焉 烹 烽 焰 焜 焠 煮 焼 焦 然 焚 焙 無 煙 煥 煦 煢 煌 照 煎 煖 煤 煩 煬 煉 熊 熕 煽 熄 熔 熨 熙 熬 熟 熱 燕 熹 熾 燉 燃 燔 燗 燎 燠 燬 燦 燭 燧 燥 燵 燐 燻 燼 燹 燿 爍 爆 爛 爨`)
+  },
+  {
+    char: '金', label: '金', name: 'かねへん',
+    // 漢字ペディア 金部（部首番号167）
+    kanji: makeSet(`金 釜 針 釘 釦 釵 釧 釣 鈞 釿 鈔 鈕 鈍 鈑 鉞 鉛 鉅 鉗 鉉 鈷 鉱 鉤 鉈 鉦 鉄 鈿 鉢 鉋 鈴 銜 銀 銖 銃 銭 銑 銓 銛 銚 銕 銅 鉾 銘 鋭 錺 鋏 銹 鋤 銷 鋳 錵 鋲 鋪 鋒 錏 鋺 鋸 錦 錮 鋼 錯 錙 錫 錆 錠 錘 錐 錚 錣 錨 錻 錬 録 鍔 鍵 鍠 鍬 鍾 鍼 鍛 鍮 鍍 鍋 鎰 鎧 鎹 鎌 鎬 鎖 鎗 鎮 鎚 鎺 鏖 鏡 鏗 鏨 鏘 鏃 鏑 鏝 鏐 鏈 鏤 鐚 鐘 鐓 鐙 鐃 鐐 鐶 鐫 鐸 鐺 鑓 鑑 鑠 鑢 鑞 鑪 鑰 鑷 鑽 鑼 鑾 钁 鑿`)
+  },
+  {
+    char: '日', label: '日', name: 'にちへん',
+    // 漢字ペディア 日部（部首番号72）
+    kanji: makeSet(`日 旧 旦 旭 旨 旬 早 旱 旰 易 旺 昂 昊 昆 昏 昇 昌 昃 昔 旻 明 映 昨 昵 春 昭 是 星 昼 昶 昴 昧 昜 晏 晃 晒 時 晋 晟 晁 晦 晞 晤 晧 晨 晢 晚 暁 景 暑 晶 晴 晰 智 晩 普 暗 暈 暇 暉 暄 暖 暘 暢 暮 暝 暦 暫 暴 暹 暾 曇 曆 曖 曙 曚 曜 曠 曝 曦 曩 曬`)
+  },
+  {
+    char: '魚', label: '魚', name: 'さかなへん',
+    // 漢字ペディア 魚部（部首番号195）
+    kanji: makeSet(`魚 魞 魳 魸 魬 魴 魯 鮇 鮖 鮓 鮎 鮒 鮃 鮑 鮟 鮪 鮱 鮠 鮭 鮫 鮲 鮴 鮨 鮮 鯏 鯎 鯑 鯒 鯀 鯊 鮹 鯐 鮸 鯉 鯣 鯨 鯢 鯤 鯔 鯱 鯖 鯛 鯰 鯙 鯡 鰄 鰕 鰐 鰔 鰉 鰓 鰍 鰌 鰆 鰈 鰚 鰒 鰘 鰊 鰯 鰮 鰥 鰭 鰤 鰧 鰰 鰹 鱇 鱆 鰺 鰾 鰻 鱛 鱚 鱏 鱓 鱒 鱠 鱟 鱩 鱗 鱧 鱶 鱲 鱸`)
+  },
+  {
+    char: '虫', label: '虫', name: 'むしへん',
+    // 漢字ペディア 虫部（部首番号142）
+    kanji: makeSet(`虫 虹 虻 蚓 蚊 蚣 蚕 蚩 蚤 蚪 蚌 蚫 蚶 蚯 蛍 蛄 蛇 蛆 蛋 蚰 蛉 蛙 蛯 蛔 蛞 蛬 蛤 蛟 蛭 蛛 蛮 蜒 蛾 蜎 蜆 蜈 蜍 蛸 蜀 蜃 蛻 蜹 蜑 蜓 蜉 蜂 蛹 蜊 蜴 蜿 蜷 蜻 蜥 蜘 蜩 蜚 蜜 蝟 蝘 蝦 蝸 蝌 蝎 蝴 蝗 蝨 蝕 蝶 蝠 蝮 蝓 蝣 蝲 螢 螈 螗 蟇 螟 融 螂 螾 螯 蟋 蟀 螫 蟎 蟄 螳 螺 螻 蟯 蟪 蟬 蠆 蟠 蟹 蠖 蠍 蟻 蟾 蟶 蟷 蠅 蠊 蠑 蠕 蠣 蠢 蠡 蠱 蠹`)
+  },
+  {
+    char: '辶', label: 'しんにょう', name: 'しんにょう',
+    // 漢字ペディア 辵部（部首番号162）
+    kanji: makeSet(`辷 込 辻 辺 迂 迄 迅 辿 近 迎 迚 返 迦 迥 述 迢 迪 迭 迫 迴 逆 逅 迹 送 退 迺 追 逃 迷 逑 逕 逧 這 逡 逍 逝 造 速 逐 通 逓 逞 逖 途 透 逗 逋 逢 連 逸 逵 週 進 逮 遏 遖 違 運 過 遐 遇 遑 遒 遂 達 遅 遉 道 遁 逼 遍 逾 遊 遥 遠 遣 遡 遜 遨 遮 遭 適 遯 遺 遵 遶 選 遷 邁 遼 邂 還 遽 避 邀 邇 邏`)
+  },
+];
+
+// ════════════════════════════════════════════
+// RANKS
+// ════════════════════════════════════════════
+const RANKS = [
+  { min: 0,  label: '😢 漢字ゼロ段' },
+  { min: 1,  label: '📚 漢字見習い' },
+  { min: 4,  label: '✏️ 漢字修行中' },
+  { min: 8,  label: '🌟 漢字の達人' },
+  { min: 13, label: '🎓 漢字博士' },
+  { min: 18, label: '⚡ 漢字の神' },
+  { min: 24, label: '👹 漢字の鬼' },
+];
+function getRank(score) {
+  let r = RANKS[0];
+  for (const e of RANKS) { if (score >= e.min) r = e; }
+  return r.label;
+}
+
+// ════════════════════════════════════════════
+// HIGH SCORES
+// ════════════════════════════════════════════
+function loadScores(char) {
+  try { return JSON.parse(localStorage.getItem('kb_' + char)) || []; } catch { return []; }
+}
+function saveAndGetScores(char, score) {
+  let arr = [score, ...loadScores(char)].sort((a, b) => b - a).slice(0, 3);
+  try { localStorage.setItem('kb_' + char, JSON.stringify(arr)); } catch {}
+  return arr;
+}
+
+// ════════════════════════════════════════════
+// STATE & DOM
+// ════════════════════════════════════════════
+let g = { timeLeft: 0, score: 0, found: new Set(), interval: null, composing: false, radical: null };
+const $ = id => document.getElementById(id);
+
+function showScreen(name) {
+  ['start', 'game', 'result'].forEach(s => {
+    $('screen-' + s).classList.toggle('active', s === name);
+  });
+}
+
+// ════════════════════════════════════════════
+// RADICAL GRID
+// ════════════════════════════════════════════
+function buildGrid() {
+  const grid = $('radical-grid');
+  RADICALS.forEach(r => {
+    const btn = document.createElement('button');
+    btn.className = 'radical-btn';
+    btn.innerHTML = `<span class="r-char">${r.char}</span><span class="r-name">${r.label}</span>`;
+    btn.addEventListener('click', () => startGame(r));
+    grid.appendChild(btn);
+  });
+}
+$('btn-random').addEventListener('click', () => {
+  startGame(RADICALS[Math.floor(Math.random() * RADICALS.length)]);
+});
+
+// ════════════════════════════════════════════
+// GAME
+// ════════════════════════════════════════════
+function startGame(radical) {
+  if (g.interval) clearInterval(g.interval);
+  g = { timeLeft: 60, score: 0, found: new Set(), interval: null, composing: false, radical };
+
+  $('theme-char').textContent = radical.char;
+  $('theme-name').textContent = radical.name;
+  $('score-val').textContent = '0';
+  $('timer-val').textContent = '60';
+  $('timer-val').classList.remove('urgent');
+  $('found-list').innerHTML = '';
+  $('feedback').textContent = '';
+  $('feedback').className = 'feedback';
+
+  const inp = $('kanji-input');
+  inp.value = ''; inp.className = 'kanji-input';
+
+  showScreen('game');
+  setTimeout(() => inp.focus(), 80);
+  g.interval = setInterval(tick, 1000);
+}
+
+function tick() {
+  g.timeLeft--;
+  const el = $('timer-val');
+  el.textContent = g.timeLeft;
+  if (g.timeLeft <= 10) el.classList.add('urgent');
+  if (g.timeLeft <= 0) endGame();
+}
+
+// ════════════════════════════════════════════
+// SUBMIT
+// ════════════════════════════════════════════
+function trySubmit() {
+  const inp = $('kanji-input');
+  const raw = inp.value.trim();
+  if (!raw) return;
+
+  let char = '';
+  for (const c of raw) {
+    const cp = c.codePointAt(0);
+    if ((cp >= 0x4E00 && cp <= 0x9FFF) || (cp >= 0x3400 && cp <= 0x4DBF) ||
+        (cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0x20000 && cp <= 0x2A6DF)) {
+      char = c; break;
+    }
+  }
+  if (!char) char = [...raw][0];
+  inp.value = '';
+
+  if (g.found.has(char)) {
+    feedback('ng', `「${char}」はもう使ったよ！`);
+    doShake(inp); return;
+  }
+  if (!g.radical.kanji.has(char)) {
+    const cp = char.codePointAt(0);
+    const isKanji = (cp >= 0x4E00 && cp <= 0x9FFF) || (cp >= 0x3400 && cp <= 0x4DBF);
+    feedback('ng', isKanji ? `「${char}」はこの部首の漢字じゃないかも…` : '漢字を入力してね！');
+    doShake(inp); return;
+  }
+
+  g.found.add(char);
+  g.score++;
+  $('score-val').textContent = g.score;
+
+  const tag = document.createElement('span');
+  tag.className = 'found-tag popin';
+  tag.textContent = char;
+  const list = $('found-list');
+  list.appendChild(tag);
+  list.scrollTop = list.scrollHeight;
+
+  feedback('ok', `「${char}」正解！✨`);
+  inp.classList.add('ok');
+  setTimeout(() => inp.classList.remove('ok'), 500);
+}
+
+let fbTimer = null;
+function feedback(type, msg) {
+  const el = $('feedback');
+  el.textContent = msg; el.className = 'feedback ' + type;
+  clearTimeout(fbTimer);
+  fbTimer = setTimeout(() => { el.textContent = ''; el.className = 'feedback'; }, 1300);
+}
+function doShake(el) {
+  el.classList.remove('shaking', 'ng'); void el.offsetWidth;
+  el.classList.add('ng', 'shaking');
+  setTimeout(() => el.classList.remove('ng', 'shaking'), 400);
+}
+
+// ════════════════════════════════════════════
+// INPUT EVENTS
+// ════════════════════════════════════════════
+const inp = $('kanji-input');
+inp.addEventListener('compositionstart', () => { g.composing = true; });
+inp.addEventListener('compositionend',   () => { g.composing = false; });
+inp.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !g.composing && g.timeLeft > 0) { e.preventDefault(); trySubmit(); }
+});
+$('btn-submit').addEventListener('click', () => { if (g.timeLeft > 0) trySubmit(); });
+
+// ════════════════════════════════════════════
+// END GAME
+// ════════════════════════════════════════════
+function endGame() {
+  clearInterval(g.interval);
+  g.interval = null;
+
+  const scores = saveAndGetScores(g.radical.char, g.score);
+  $('res-score').textContent = g.score;
+  $('res-rank').textContent = getRank(g.score);
+
+  const grid = $('result-found-grid');
+  grid.innerHTML = '';
+  const foundArr = [...g.found];
+  if (foundArr.length === 0) {
+    grid.innerHTML = '<span style="color:#95a5a6;font-size:0.85rem;">（なし）</span>';
+  } else {
+    foundArr.forEach(char => {
+      const chip = document.createElement('button');
+      chip.className = 'found-chip';
+      chip.textContent = char;
+      chip.addEventListener('click', () => showKanjiModal(char));
+      grid.appendChild(chip);
+    });
+  }
+
+  // ── 答えられなかった漢字 ──
+  const missedGrid = $('result-missed-grid');
+  missedGrid.innerHTML = '';
+  const allKanji = [...g.radical.kanji];
+  const missed = allKanji.filter(c => !g.found.has(c));
+  if (missed.length === 0) {
+    missedGrid.innerHTML = '<span style="color:#27ae60;font-size:0.88rem;font-weight:bold;">🎉 全部見つけた！パーフェクト！</span>';
+    $('missed-count-badge').textContent = '';
+    $('result-missed-label').style.color = '#27ae60';
+  } else {
+    $('missed-count-badge').textContent = missed.length + '個';
+    $('result-missed-label').style.color = '';
+    missed.forEach(char => {
+      const chip = document.createElement('button');
+      chip.className = 'missed-chip';
+      chip.textContent = char;
+      chip.addEventListener('click', () => showKanjiModal(char));
+      missedGrid.appendChild(chip);
+    });
+  }
+
+  const medals = ['🥇', '🥈', '🥉'];
+  const list = $('hs-list');
+  list.innerHTML = '';
+  let markedNew = false;
+  scores.forEach((s, i) => {
+    const isNew = !markedNew && s === g.score;
+    if (isNew) markedNew = true;
+    const row = document.createElement('div');
+    row.className = 'hs-row';
+    row.innerHTML =
+      `<span class="hs-medal">${medals[i] || (i + 1) + '位'}</span>` +
+      `<span>${isNew ? '<strong>今回！</strong>' : 'ハイスコア'}</span>` +
+      (isNew ? '<span class="hs-new">NEW</span>' : '') +
+      `<span class="hs-score">${s}個</span>`;
+    list.appendChild(row);
+  });
+
+  showScreen('result');
+}
+
+$('btn-again').addEventListener('click', () => showScreen('start'));
+
+// ════════════════════════════════════════════
+// KANJIPEDIA MODAL
+// ════════════════════════════════════════════
+const _kpCache = {};
+
+function fetchWithTimeout(url, ms) {
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { signal: ctrl.signal })
+    .then(r => { clearTimeout(tid); return r; })
+    .catch(e => { clearTimeout(tid); throw e; });
+}
+
+async function fetchKanjiInfo(char) {
+  if (_kpCache[char] !== undefined) return _kpCache[char];
+  _kpCache[char] = null;
+
+  const kpSearchUrl = `https://www.kanjipedia.jp/search?k=${encodeURIComponent(char)}&kt=0&sk=0&ck=1&lf=0&rf=0`;
+
+  try {
+    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(kpSearchUrl);
+    const resp = await fetchWithTimeout(proxyUrl, 9000);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    const html = json.contents || '';
+    if (!html) throw new Error('empty');
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    const allLinks = [...doc.querySelectorAll('a[href]')];
+    const detailLink = allLinks.find(a => /\/kanji\/\d+/.test(a.getAttribute('href')));
+    let detailUrl = null;
+    if (detailLink) {
+      const href = detailLink.getAttribute('href');
+      detailUrl = href.startsWith('http') ? href : 'https://www.kanjipedia.jp' + href;
+    }
+
+    let info = extractReadings(doc);
+
+    if (!info.on && !info.kun && detailUrl) {
+      try {
+        const p2 = 'https://api.allorigins.win/get?url=' + encodeURIComponent(detailUrl);
+        const r2 = await fetchWithTimeout(p2, 9000);
+        if (r2.ok) {
+          const j2 = await r2.json();
+          const doc2 = parser.parseFromString(j2.contents || '', 'text/html');
+          info = extractReadings(doc2);
+        }
+      } catch { /* ignore */ }
+    }
+
+    const result = { ...info, kpUrl: detailUrl || kpSearchUrl };
+    _kpCache[char] = result;
+    return result;
+  } catch (e) {
+    const result = { error: true, kpUrl: kpSearchUrl };
+    _kpCache[char] = result;
+    return result;
+  }
+}
+
+function extractReadings(doc) {
+  let on = '', kun = '', meaning = '';
+  for (const dt of doc.querySelectorAll('dt')) {
+    const lbl = dt.textContent.trim();
+    const dd = dt.nextElementSibling;
+    if (!dd) continue;
+    const val = dd.textContent.trim();
+    if (!on  && /音読み/.test(lbl)) on  = val;
+    if (!kun && /訓読み/.test(lbl)) kun = val;
+    if (!meaning && /意味/.test(lbl)) meaning = val.slice(0, 140);
+  }
+  if (!on && !kun) {
+    for (const tr of doc.querySelectorAll('tr')) {
+      const ths = [...tr.querySelectorAll('th, td:first-child')];
+      const tds = [...tr.querySelectorAll('td')];
+      if (!ths.length || !tds.length) continue;
+      const lbl = ths[0].textContent.trim();
+      const val = tds[tds.length - 1].textContent.trim();
+      if (!on  && /音読み/.test(lbl)) on  = val;
+      if (!kun && /訓読み/.test(lbl)) kun = val;
+      if (!meaning && /意味/.test(lbl)) meaning = val.slice(0, 140);
+    }
+  }
+  if (!on && !kun) {
+    const txt = (doc.body || doc.documentElement || {}).textContent || '';
+    const om = txt.match(/音読み[^\S\n]{0,4}([ァ-ヴーｦ-ﾟ・、。\s（）()]{1,60})/);
+    const km = txt.match(/訓読み[^\S\n]{0,4}([ぁ-ん・、〜～.\s（）()]{1,60})/);
+    if (om) on  = om[1].replace(/\s+/g,' ').trim();
+    if (km) kun = km[1].replace(/\s+/g,' ').trim();
+  }
+  return { on, kun, meaning };
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function showKanjiModal(char) {
+  const overlay = $('modal-overlay');
+  const body    = $('modal-body');
+  const kpLink  = $('modal-kp-link');
+
+  $('modal-char').textContent = char;
+  const kpSearchUrl = `https://www.kanjipedia.jp/search?k=${encodeURIComponent(char)}&kt=0&sk=0&ck=1&lf=0&rf=0`;
+  kpLink.href = kpSearchUrl;
+  body.innerHTML = `<div class="modal-status"><span class="spinner"></span>漢字ペディアから取得中…</div>`;
+  overlay.classList.remove('hidden');
+
+  const info = await fetchKanjiInfo(char);
+  if (info.kpUrl) kpLink.href = info.kpUrl;
+
+  if (info.error || (!info.on && !info.kun && !info.meaning)) {
+    body.innerHTML = `<div class="modal-status error">情報を取得できませんでした。<br>下のリンクから確認してね。</div>`;
+    return;
+  }
+
+  let html = '';
+  if (info.on) {
+    html += `<div class="modal-reading-row">
+      <span class="reading-badge on">音読み</span>
+      <span class="reading-value">${esc(info.on)}</span></div>`;
+  }
+  if (info.kun) {
+    html += `<div class="modal-reading-row">
+      <span class="reading-badge kun">訓読み</span>
+      <span class="reading-value">${esc(info.kun)}</span></div>`;
+  }
+  if (info.meaning) {
+    html += `<div class="modal-meaning">${esc(info.meaning)}</div>`;
+  }
+  body.innerHTML = html;
+}
+
+$('modal-close').addEventListener('click', () => $('modal-overlay').classList.add('hidden'));
+$('modal-overlay').addEventListener('click', e => {
+  if (e.target === $('modal-overlay')) $('modal-overlay').classList.add('hidden');
+});
+
+buildGrid();
+
+// ════════════════════════════════════════════
+// PWA：Service Worker 登録
+// ════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// ════════════════════════════════════════════
+// モバイル：キーボード開閉でコンパクトモード切替
+// ════════════════════════════════════════════
+if (window.visualViewport) {
+  const onViewportResize = () => {
+    // 画面高の70%未満になったらキーボードが出ていると判断
+    const ratio = window.visualViewport.height / window.screen.height;
+    document.body.classList.toggle('kb-open', ratio < 0.72);
+  };
+  window.visualViewport.addEventListener('resize', onViewportResize);
+}
+</script>
+</body>
+</html>

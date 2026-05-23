@@ -1,0 +1,19 @@
+{
+  "name": "漢字ボンバー！",
+  "short_name": "漢字ボンバー",
+  "description": "制限時間60秒！部首の漢字を限界まで絞り出せ！",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "aicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
