@@ -217,64 +217,6 @@
       transform: translateY(-2px); box-shadow: 0 6px 22px rgba(102,126,234,0.5);
     }
 
-    /* ── MODAL ── */
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.65);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 999; padding: 16px;
-    }
-    .modal-overlay.hidden { display: none; }
-    .modal-card {
-      background: #fff; border-radius: 24px; padding: 28px 24px 20px;
-      max-width: 340px; width: 100%; position: relative;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
-      animation: modal-pop 0.25s cubic-bezier(0.175,0.885,0.32,1.275) both;
-    }
-    @keyframes modal-pop {
-      0%{transform:scale(0.85);opacity:0} 100%{transform:scale(1);opacity:1}
-    }
-    .modal-close {
-      position: absolute; top: 12px; right: 12px;
-      background: #f0f0f0; border: none; border-radius: 50%;
-      width: 28px; height: 28px; cursor: pointer; font-size: 0.85rem;
-      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
-    }
-    .modal-close:hover { background: #e0e0e0; }
-    .modal-kanji {
-      font-size: 5rem; text-align: center; line-height: 1;
-      margin-bottom: 16px; color: #1a1a2e; font-weight: 900;
-    }
-    .modal-reading-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
-    .reading-badge {
-      padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: bold;
-      white-space: nowrap; flex-shrink: 0; margin-top: 2px;
-    }
-    .reading-badge.on { background: #3498db; color: white; }
-    .reading-badge.kun { background: #27ae60; color: white; }
-    .reading-value { font-size: 0.92rem; color: #333; line-height: 1.6; }
-    .modal-meaning {
-      font-size: 0.82rem; color: #555; margin-top: 10px;
-      line-height: 1.6; border-top: 1px solid #eee; padding-top: 10px;
-    }
-    .modal-kp-btn {
-      display: block; margin-top: 14px; padding: 10px 16px;
-      background: #eaf2f8; color: #2980b9; text-decoration: none;
-      border-radius: 12px; font-size: 0.88rem; font-weight: bold;
-      text-align: center; transition: background 0.16s;
-    }
-    .modal-kp-btn:hover { background: #d6e8f7; }
-    .modal-status { text-align: center; padding: 18px 0; font-size: 0.88rem; color: #7f8c8d; }
-    .modal-status.error { color: #e74c3c; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner {
-      display: inline-block; width: 18px; height: 18px;
-      border: 3px solid #e0e0e0; border-top-color: #3498db;
-      border-radius: 50%; animation: spin 0.7s linear infinite;
-      vertical-align: middle; margin-right: 6px;
-    }
-    .kp-source {
-      text-align: center; font-size: 0.7rem; color: #bbb; margin-top: 8px;
-    }
 
     /* ════════════════════════════════════════════
        モバイル対応
@@ -468,18 +410,6 @@
   </div>
 </div>
 
-<!-- MODAL -->
-<div id="modal-overlay" class="modal-overlay hidden">
-  <div class="modal-card">
-    <button class="modal-close" id="modal-close">✕</button>
-    <div class="modal-kanji" id="modal-char">海</div>
-    <div id="modal-body"></div>
-    <a id="modal-kp-link" class="modal-kp-btn" target="_blank" rel="noopener" href="#">
-      漢字ペディアで詳しく見る →
-    </a>
-    <div class="kp-source">出典：漢字ペディア</div>
-  </div>
-</div>
 
 <script>
 // ════════════════════════════════════════════════════
@@ -739,7 +669,6 @@ function endGame() {
       const chip = document.createElement('button');
       chip.className = 'found-chip';
       chip.textContent = char;
-      chip.addEventListener('click', () => showKanjiModal(char));
       grid.appendChild(chip);
     });
   }
@@ -760,7 +689,6 @@ function endGame() {
       const chip = document.createElement('button');
       chip.className = 'missed-chip';
       chip.textContent = char;
-      chip.addEventListener('click', () => showKanjiModal(char));
       missedGrid.appendChild(chip);
     });
   }
@@ -787,144 +715,6 @@ function endGame() {
 
 $('btn-again').addEventListener('click', () => showScreen('start'));
 
-// ════════════════════════════════════════════
-// KANJIPEDIA MODAL
-// ════════════════════════════════════════════
-const _kpCache = {};
-
-function fetchWithTimeout(url, ms) {
-  const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), ms);
-  return fetch(url, { signal: ctrl.signal })
-    .then(r => { clearTimeout(tid); return r; })
-    .catch(e => { clearTimeout(tid); throw e; });
-}
-
-async function fetchKanjiInfo(char) {
-  if (_kpCache[char] !== undefined) return _kpCache[char];
-  _kpCache[char] = null;
-
-  const kpSearchUrl = `https://www.kanjipedia.jp/search?k=${encodeURIComponent(char)}&kt=0&sk=0&ck=1&lf=0&rf=0`;
-
-  try {
-    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(kpSearchUrl);
-    const resp = await fetchWithTimeout(proxyUrl, 9000);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const json = await resp.json();
-    const html = json.contents || '';
-    if (!html) throw new Error('empty');
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    const allLinks = [...doc.querySelectorAll('a[href]')];
-    const detailLink = allLinks.find(a => /\/kanji\/\d+/.test(a.getAttribute('href')));
-    let detailUrl = null;
-    if (detailLink) {
-      const href = detailLink.getAttribute('href');
-      detailUrl = href.startsWith('http') ? href : 'https://www.kanjipedia.jp' + href;
-    }
-
-    let info = extractReadings(doc);
-
-    if (!info.on && !info.kun && detailUrl) {
-      try {
-        const p2 = 'https://api.allorigins.win/get?url=' + encodeURIComponent(detailUrl);
-        const r2 = await fetchWithTimeout(p2, 9000);
-        if (r2.ok) {
-          const j2 = await r2.json();
-          const doc2 = parser.parseFromString(j2.contents || '', 'text/html');
-          info = extractReadings(doc2);
-        }
-      } catch { /* ignore */ }
-    }
-
-    const result = { ...info, kpUrl: detailUrl || kpSearchUrl };
-    _kpCache[char] = result;
-    return result;
-  } catch (e) {
-    const result = { error: true, kpUrl: kpSearchUrl };
-    _kpCache[char] = result;
-    return result;
-  }
-}
-
-function extractReadings(doc) {
-  let on = '', kun = '', meaning = '';
-  for (const dt of doc.querySelectorAll('dt')) {
-    const lbl = dt.textContent.trim();
-    const dd = dt.nextElementSibling;
-    if (!dd) continue;
-    const val = dd.textContent.trim();
-    if (!on  && /音読み/.test(lbl)) on  = val;
-    if (!kun && /訓読み/.test(lbl)) kun = val;
-    if (!meaning && /意味/.test(lbl)) meaning = val.slice(0, 140);
-  }
-  if (!on && !kun) {
-    for (const tr of doc.querySelectorAll('tr')) {
-      const ths = [...tr.querySelectorAll('th, td:first-child')];
-      const tds = [...tr.querySelectorAll('td')];
-      if (!ths.length || !tds.length) continue;
-      const lbl = ths[0].textContent.trim();
-      const val = tds[tds.length - 1].textContent.trim();
-      if (!on  && /音読み/.test(lbl)) on  = val;
-      if (!kun && /訓読み/.test(lbl)) kun = val;
-      if (!meaning && /意味/.test(lbl)) meaning = val.slice(0, 140);
-    }
-  }
-  if (!on && !kun) {
-    const txt = (doc.body || doc.documentElement || {}).textContent || '';
-    const om = txt.match(/音読み[^\S\n]{0,4}([ァ-ヴーｦ-ﾟ・、。\s（）()]{1,60})/);
-    const km = txt.match(/訓読み[^\S\n]{0,4}([ぁ-ん・、〜～.\s（）()]{1,60})/);
-    if (om) on  = om[1].replace(/\s+/g,' ').trim();
-    if (km) kun = km[1].replace(/\s+/g,' ').trim();
-  }
-  return { on, kun, meaning };
-}
-
-function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-async function showKanjiModal(char) {
-  const overlay = $('modal-overlay');
-  const body    = $('modal-body');
-  const kpLink  = $('modal-kp-link');
-
-  $('modal-char').textContent = char;
-  const kpSearchUrl = `https://www.kanjipedia.jp/search?k=${encodeURIComponent(char)}&kt=0&sk=0&ck=1&lf=0&rf=0`;
-  kpLink.href = kpSearchUrl;
-  body.innerHTML = `<div class="modal-status"><span class="spinner"></span>漢字ペディアから取得中…</div>`;
-  overlay.classList.remove('hidden');
-
-  const info = await fetchKanjiInfo(char);
-  if (info.kpUrl) kpLink.href = info.kpUrl;
-
-  if (info.error || (!info.on && !info.kun && !info.meaning)) {
-    body.innerHTML = `<div class="modal-status error">情報を取得できませんでした。<br>下のリンクから確認してね。</div>`;
-    return;
-  }
-
-  let html = '';
-  if (info.on) {
-    html += `<div class="modal-reading-row">
-      <span class="reading-badge on">音読み</span>
-      <span class="reading-value">${esc(info.on)}</span></div>`;
-  }
-  if (info.kun) {
-    html += `<div class="modal-reading-row">
-      <span class="reading-badge kun">訓読み</span>
-      <span class="reading-value">${esc(info.kun)}</span></div>`;
-  }
-  if (info.meaning) {
-    html += `<div class="modal-meaning">${esc(info.meaning)}</div>`;
-  }
-  body.innerHTML = html;
-}
-
-$('modal-close').addEventListener('click', () => $('modal-overlay').classList.add('hidden'));
-$('modal-overlay').addEventListener('click', e => {
-  if (e.target === $('modal-overlay')) $('modal-overlay').classList.add('hidden');
 });
 
 buildGrid();
