@@ -161,11 +161,10 @@
       padding: 10px; background: #f8f9fa; border-radius: 12px; min-height: 42px;
     }
     .found-chip {
-      background: #3498db; color: white; border: none; border-radius: 20px;
-      padding: 4px 14px; font-size: 1.05rem; font-weight: bold; cursor: pointer;
-      transition: background 0.16s, transform 0.12s; font-family: inherit;
+      background: #3498db; color: white; border-radius: 20px;
+      padding: 4px 14px; font-size: 1.05rem; font-weight: bold;
+      display: inline-block;
     }
-    .found-chip:hover { background: #2980b9; transform: scale(1.1); }
 
     /* ── MISSED KANJI ── */
     .result-missed-section { margin-bottom: 14px; }
@@ -181,9 +180,8 @@
     .missed-chip {
       background: #fef9ec; color: #7d6608; border: 1.5px solid #f0d060;
       border-radius: 20px; padding: 4px 14px; font-size: 1.05rem; font-weight: bold;
-      cursor: pointer; transition: background 0.16s, transform 0.12s; font-family: inherit;
+      display: inline-block;
     }
-    .missed-chip:hover { background: #fdf0c0; transform: scale(1.1); }
     .missed-count-badge {
       font-size: 0.75rem; color: #a08040; background: #fef3c7;
       border-radius: 10px; padding: 1px 7px; margin-left: 6px; font-weight: normal;
@@ -395,11 +393,11 @@
       <span class="rank-badge-text" id="res-rank">ー</span>
     </div>
     <div class="result-found-section">
-      <div class="result-found-label">✅ あなたが見つけた漢字（タップで詳細）</div>
+      <div class="result-found-label">✅ あなたが見つけた漢字</div>
       <div class="result-found-grid" id="result-found-grid"></div>
     </div>
     <div class="result-missed-section">
-      <div class="result-missed-label" id="result-missed-label">📖 他にもあった漢字<span class="missed-count-badge" id="missed-count-badge"></span>（タップで詳細）</div>
+      <div class="result-missed-label" id="result-missed-label">📖 他にもあった漢字<span class="missed-count-badge" id="missed-count-badge"></span></div>
       <div class="result-missed-grid" id="result-missed-grid"></div>
     </div>
     <div class="hs-box">
@@ -666,7 +664,7 @@ function endGame() {
     grid.innerHTML = '<span style="color:#95a5a6;font-size:0.85rem;">（なし）</span>';
   } else {
     foundArr.forEach(char => {
-      const chip = document.createElement('button');
+      const chip = document.createElement('span');
       chip.className = 'found-chip';
       chip.textContent = char;
       grid.appendChild(chip);
@@ -686,7 +684,7 @@ function endGame() {
     $('missed-count-badge').textContent = missed.length + '個';
     $('result-missed-label').style.color = '';
     missed.forEach(char => {
-      const chip = document.createElement('button');
+      const chip = document.createElement('span');
       chip.className = 'missed-chip';
       chip.textContent = char;
       missedGrid.appendChild(chip);
